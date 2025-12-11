@@ -1,65 +1,104 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { Header } from '@/components/Header';
+import { MonthControl } from '@/components/MonthControl';
+import { CalendarGrid } from '@/components/CalendarGrid';
+import { EntrySheet } from '@/components/EntrySheet';
+import { AddButton } from '@/components/AddButton';
+import { useStickyState } from '@/hooks/useStickyState';
+import { useCalendarGestures } from '@/hooks/useCalendarGestures';
+import { generateMockData } from '@/lib/mock-data';
+import { formatDateKey } from '@/lib/date-utils';
+import type { EntryFormData, EntriesMap } from '@/types';
 
 export default function Home() {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [entries, setEntries] = useStickyState<EntriesMap>(
+    generateMockData(),
+    'bible-tracker-entries-v4'
+  );
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const prevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const { dragOffset, handlers: gestureHandlers } = useCalendarGestures(nextMonth, prevMonth);
+
+  const addEntry = (entryData: EntryFormData) => {
+    const dateObj = new Date(entryData.date);
+    const userTimezoneOffset = dateObj.getTimezoneOffset() * 60000;
+    const adjustedDate = new Date(dateObj.getTime() + userTimezoneOffset);
+
+    const key = formatDateKey(adjustedDate);
+    const current = entries[key] || [];
+
+    setEntries({
+      ...entries,
+      [key]: [
+        ...current,
+        {
+          id: Date.now(),
+          book: entryData.book,
+          chapters: entryData.chapters,
+          verses: entryData.verses,
+          timestamp: new Date(),
+        },
+      ],
+    });
+  };
+
+  const removeEntry = (entryId: string | number) => {
+    if (!selectedDate) return;
+    const key = formatDateKey(selectedDate);
+    const current = entries[key] || [];
+    setEntries({
+      ...entries,
+      [key]: current.filter((e) => e.id !== entryId),
+    });
+  };
+
+  const handleDayClick = (date: Date) => {
+    setSelectedDate(date);
+    setIsSheetOpen(true);
+  };
+
+  const handleAddButtonClick = () => {
+    setSelectedDate(new Date());
+    setIsSheetOpen(true);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="min-h-screen bg-[#FDFCF8] text-slate-800 font-sans selection:bg-emerald-100 flex flex-col">
+      <Header />
+
+      <MonthControl currentDate={currentDate} onPrevMonth={prevMonth} onNextMonth={nextMonth} />
+
+      <CalendarGrid
+        currentDate={currentDate}
+        selectedDate={selectedDate}
+        entries={entries}
+        onDayClick={handleDayClick}
+        dragOffset={dragOffset}
+        gestureHandlers={gestureHandlers}
+      />
+
+      <AddButton onClick={handleAddButtonClick} />
+
+      <EntrySheet
+        isOpen={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
+        selectedDate={selectedDate}
+        entries={entries}
+        onAddEntry={addEntry}
+        onRemoveEntry={removeEntry}
+      />
     </div>
   );
 }
