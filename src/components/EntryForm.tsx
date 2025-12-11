@@ -1,10 +1,12 @@
-import { useState, FormEvent, ChangeEvent } from 'react';
+import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
-import type { EntryFormData } from '@/types';
+import type { EntryFormData, BibleEntry } from '@/types';
 
 interface EntryFormProps {
   onSubmit: (data: EntryFormData) => Promise<void> | void;
   initialDate: string;
+  editingEntry?: BibleEntry | null;
+  onCancelEdit?: () => void;
 }
 
 const inputClass =
@@ -13,7 +15,7 @@ const inputClass =
 const labelClass =
   'text-xs sm:text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-900';
 
-export function EntryForm({ onSubmit, initialDate }: EntryFormProps) {
+export function EntryForm({ onSubmit, initialDate, editingEntry, onCancelEdit }: EntryFormProps) {
   const [formData, setFormData] = useState<EntryFormData>({
     book: '',
     chapters: '',
@@ -21,6 +23,25 @@ export function EntryForm({ onSubmit, initialDate }: EntryFormProps) {
     date: initialDate,
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Update form when editing entry changes
+  useEffect(() => {
+    if (editingEntry) {
+      setFormData({
+        book: editingEntry.book,
+        chapters: editingEntry.chapters,
+        verses: editingEntry.verses || '',
+        date: editingEntry.date,
+      });
+    } else {
+      setFormData({
+        book: '',
+        chapters: '',
+        verses: '',
+        date: initialDate,
+      });
+    }
+  }, [editingEntry, initialDate]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,6 +51,7 @@ export function EntryForm({ onSubmit, initialDate }: EntryFormProps) {
     try {
       await onSubmit(formData);
       setFormData({ ...formData, book: '', chapters: '', verses: '' });
+      if (onCancelEdit) onCancelEdit();
     } catch (error) {
       console.error('Error submitting form:', error);
     } finally {
@@ -39,6 +61,11 @@ export function EntryForm({ onSubmit, initialDate }: EntryFormProps) {
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleCancel = () => {
+    setFormData({ book: '', chapters: '', verses: '', date: initialDate });
+    if (onCancelEdit) onCancelEdit();
   };
 
   return (
@@ -116,13 +143,22 @@ export function EntryForm({ onSubmit, initialDate }: EntryFormProps) {
         </div>
       </div>
 
-      <div className="pt-1 sm:pt-2">
+      <div className="pt-1 sm:pt-2 flex gap-2 sm:gap-3">
+        {editingEntry && (
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-slate-200 bg-white text-slate-900 hover:bg-slate-100 active:scale-95 h-9 sm:h-10 px-4 py-2 w-full shadow-sm"
+          >
+            Cancel
+          </button>
+        )}
         <button
           type="submit"
           disabled={!formData.book.trim() || !formData.chapters.trim() || submitting}
           className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-slate-900 text-slate-50 hover:bg-slate-900/90 active:scale-95 h-9 sm:h-10 px-4 py-2 w-full shadow-sm"
         >
-          {submitting ? 'Saving...' : 'Save Entry'}
+          {submitting ? 'Saving...' : editingEntry ? 'Update Entry' : 'Save Entry'}
         </button>
       </div>
     </form>

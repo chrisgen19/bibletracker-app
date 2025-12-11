@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { X, Calendar as CalendarIcon } from 'lucide-react';
 import { EntryForm } from './EntryForm';
 import { SwipeableEntry } from './SwipeableEntry';
@@ -10,6 +11,7 @@ interface EntrySheetProps {
   selectedDate: Date | null;
   entries: EntriesMap;
   onAddEntry: (data: EntryFormData) => void;
+  onEditEntry: (id: string | number, data: EntryFormData) => void;
   onRemoveEntry: (id: string | number) => void;
 }
 
@@ -24,12 +26,35 @@ export function EntrySheet({
   selectedDate,
   entries,
   onAddEntry,
+  onEditEntry,
   onRemoveEntry,
 }: EntrySheetProps) {
+  const [editingEntry, setEditingEntry] = useState<BibleEntry | null>(null);
+
   if (!isOpen || !selectedDate) return null;
 
   const dateKey = formatDateKey(selectedDate);
   const dayEntries = entries[dateKey] || [];
+
+  const handleEdit = (id: string | number) => {
+    const entry = dayEntries.find((e) => e.id === id);
+    if (entry) {
+      setEditingEntry(entry);
+    }
+  };
+
+  const handleSubmit = async (data: EntryFormData) => {
+    if (editingEntry) {
+      await onEditEntry(editingEntry.id, data);
+      setEditingEntry(null);
+    } else {
+      await onAddEntry(data);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEntry(null);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4">
@@ -68,8 +93,10 @@ export function EntrySheet({
         {/* Content - Scrollable */}
         <div className="px-4 sm:px-6 md:px-8 py-6 sm:py-7 md:py-8 overflow-y-auto">
           <EntryForm
-            onSubmit={onAddEntry}
+            onSubmit={handleSubmit}
             initialDate={dateKey}
+            editingEntry={editingEntry}
+            onCancelEdit={handleCancelEdit}
           />
 
           <div className="mt-8 sm:mt-10">
@@ -89,6 +116,7 @@ export function EntrySheet({
                     key={entry.id}
                     entry={entry}
                     displayString={getDisplayString(entry)}
+                    onEdit={handleEdit}
                     onDelete={onRemoveEntry}
                   />
                 ))

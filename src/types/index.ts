@@ -3,6 +3,7 @@ export interface BibleEntry {
   book: string;
   chapters: string;
   verses?: string;
+  date: string;
   timestamp: Date;
   // Fallback for old data structure
   verse?: string;

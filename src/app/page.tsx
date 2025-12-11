@@ -60,6 +60,7 @@ export default function Home() {
         book: reading.bibleBook,
         chapters: reading.chapters,
         verses: reading.verses || '',
+        date: dateKey,
         timestamp: new Date(reading.createdAt),
       });
     });
@@ -105,6 +106,41 @@ export default function Home() {
     } catch (error) {
       console.error('Error adding reading:', error);
       alert('An error occurred while saving');
+    }
+  };
+
+  const editEntry = async (entryId: string | number, entryData: EntryFormData) => {
+    try {
+      // Keep the date as-is, just set time to noon to avoid timezone issues
+      const [year, month, day] = entryData.date.split('-').map(Number);
+      const dateRead = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+
+      const payload = {
+        book: entryData.book,
+        chapters: entryData.chapters,
+        verses: entryData.verses,
+        date: dateRead.toISOString(),
+      };
+
+      const response = await fetch(`/api/readings/${entryId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        // Refresh readings from database
+        await fetchReadings();
+      } else {
+        const data = await response.json();
+        console.error('Failed to update reading:', data);
+        alert(`Error: ${data.error || 'Failed to update reading'}`);
+      }
+    } catch (error) {
+      console.error('Error updating reading:', error);
+      alert('An error occurred while updating');
     }
   };
 
@@ -166,6 +202,7 @@ export default function Home() {
         selectedDate={selectedDate}
         entries={entries}
         onAddEntry={addEntry}
+        onEditEntry={editEntry}
         onRemoveEntry={removeEntry}
       />
     </div>
