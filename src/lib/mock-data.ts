@@ -14,9 +14,11 @@ export const generateMockData = (): EntriesMap => {
   const addEntry = (dayOffset: number, entriesList: Array<{ book: string; chapters: string; verses: string }>) => {
     const targetDay = currentDay - dayOffset;
     if (targetDay > 0) {
-      data[getKey(targetDay)] = entriesList.map((e, i) => ({
+      const dateKey = getKey(targetDay);
+      data[dateKey] = entriesList.map((e, i) => ({
         id: `${targetDay}-${i}`,
         ...e,
+        date: dateKey,
         timestamp: new Date(year, month, targetDay)
       }));
     }
