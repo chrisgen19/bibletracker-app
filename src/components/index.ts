@@ -5,3 +5,4 @@ export { DayCell } from './DayCell';
 export { EntrySheet } from './EntrySheet';
 export { EntryForm } from './EntryForm';
 export { AddButton } from './AddButton';
+export { SwipeableEntry } from './SwipeableEntry';

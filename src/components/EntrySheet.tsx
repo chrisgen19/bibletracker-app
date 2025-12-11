@@ -1,5 +1,6 @@
-import { X, Trash2, Calendar as CalendarIcon } from 'lucide-react';
+import { X, Calendar as CalendarIcon } from 'lucide-react';
 import { EntryForm } from './EntryForm';
+import { SwipeableEntry } from './SwipeableEntry';
 import { formatDateKey } from '@/lib/date-utils';
 import type { BibleEntry, EntryFormData, EntriesMap } from '@/types';
 
@@ -84,21 +85,12 @@ export function EntrySheet({
             <div className="space-y-2 sm:space-y-3">
               {dayEntries.length > 0 ? (
                 dayEntries.map((entry) => (
-                  <div
+                  <SwipeableEntry
                     key={entry.id}
-                    className="group flex items-center justify-between bg-white p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl border border-slate-100 shadow-sm hover:border-emerald-200 hover:shadow-md transition-all"
-                  >
-                    <span className="font-medium text-slate-700 text-sm sm:text-base pr-2 break-words">
-                      {getDisplayString(entry)}
-                    </span>
-                    <button
-                      onClick={() => onRemoveEntry(entry.id)}
-                      className="opacity-70 sm:opacity-0 group-hover:opacity-100 p-1.5 sm:p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0"
-                      aria-label="Delete entry"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
-                  </div>
+                    entry={entry}
+                    displayString={getDisplayString(entry)}
+                    onDelete={onRemoveEntry}
+                  />
                 ))
               ) : (
                 <div className="text-center py-8 sm:py-10 md:py-12 bg-slate-50/50 border-2 border-dashed border-slate-100 rounded-2xl sm:rounded-3xl">
