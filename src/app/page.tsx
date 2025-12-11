@@ -1,25 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { MonthControl } from '@/components/MonthControl';
 import { CalendarGrid } from '@/components/CalendarGrid';
 import { EntrySheet } from '@/components/EntrySheet';
 import { AddButton } from '@/components/AddButton';
-import { useStickyState } from '@/hooks/useStickyState';
 import { useCalendarGestures } from '@/hooks/useCalendarGestures';
-import { generateMockData } from '@/lib/mock-data';
 import { formatDateKey } from '@/lib/date-utils';
-import type { EntryFormData, EntriesMap } from '@/types';
+import type { EntryFormData, EntriesMap, BibleReading } from '@/types';
 
 export default function Home() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [entries, setEntries] = useStickyState<EntriesMap>(
-    generateMockData(),
-    'bible-tracker-entries-v4'
-  );
+  const [entries, setEntries] = useState<EntriesMap>({});
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const nextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -31,37 +27,102 @@ export default function Home() {
 
   const { dragOffset, handlers: gestureHandlers } = useCalendarGestures(nextMonth, prevMonth);
 
-  const addEntry = (entryData: EntryFormData) => {
-    const dateObj = new Date(entryData.date);
-    const userTimezoneOffset = dateObj.getTimezoneOffset() * 60000;
-    const adjustedDate = new Date(dateObj.getTime() + userTimezoneOffset);
+  // Fetch readings from database on mount
+  useEffect(() => {
+    fetchReadings();
+  }, []);
 
-    const key = formatDateKey(adjustedDate);
-    const current = entries[key] || [];
-
-    setEntries({
-      ...entries,
-      [key]: [
-        ...current,
-        {
-          id: Date.now(),
-          book: entryData.book,
-          chapters: entryData.chapters,
-          verses: entryData.verses,
-          timestamp: new Date(),
-        },
-      ],
-    });
+  const fetchReadings = async () => {
+    try {
+      const response = await fetch('/api/readings');
+      if (response.ok) {
+        const data = await response.json();
+        convertReadingsToEntries(data.readings);
+      }
+    } catch (error) {
+      console.error('Failed to fetch readings:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const removeEntry = (entryId: string | number) => {
-    if (!selectedDate) return;
-    const key = formatDateKey(selectedDate);
-    const current = entries[key] || [];
-    setEntries({
-      ...entries,
-      [key]: current.filter((e) => e.id !== entryId),
+  const convertReadingsToEntries = (readings: BibleReading[]) => {
+    const entriesMap: EntriesMap = {};
+
+    readings.forEach((reading) => {
+      const dateKey = formatDateKey(new Date(reading.dateRead));
+      if (!entriesMap[dateKey]) {
+        entriesMap[dateKey] = [];
+      }
+
+      entriesMap[dateKey].push({
+        id: reading.id,
+        book: reading.bibleBook,
+        chapters: reading.chapters,
+        verses: reading.verses || '',
+        timestamp: new Date(reading.createdAt),
+      });
     });
+
+    setEntries(entriesMap);
+  };
+
+  const addEntry = async (entryData: EntryFormData) => {
+    try {
+      console.log('Adding entry:', entryData);
+
+      // Keep the date as-is, just set time to noon to avoid timezone issues
+      const [year, month, day] = entryData.date.split('-').map(Number);
+      const dateRead = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+
+      const payload = {
+        bibleBook: entryData.book,
+        chapters: entryData.chapters,
+        verses: entryData.verses,
+        dateRead: dateRead.toISOString(),
+      };
+
+      console.log('Sending payload:', payload);
+
+      const response = await fetch('/api/readings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      console.log('Response:', response.status, data);
+
+      if (response.ok) {
+        // Refresh readings from database
+        await fetchReadings();
+      } else {
+        console.error('Failed to add reading:', data);
+        alert(`Error: ${data.error || 'Failed to add reading'}`);
+      }
+    } catch (error) {
+      console.error('Error adding reading:', error);
+      alert('An error occurred while saving');
+    }
+  };
+
+  const removeEntry = async (entryId: string | number) => {
+    try {
+      const response = await fetch(`/api/readings/${entryId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Refresh readings from database
+        await fetchReadings();
+      } else {
+        console.error('Failed to delete reading');
+      }
+    } catch (error) {
+      console.error('Error deleting reading:', error);
+    }
   };
 
   const handleDayClick = (date: Date) => {
@@ -73,6 +134,14 @@ export default function Home() {
     setSelectedDate(new Date());
     setIsSheetOpen(true);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FDFCF8] flex items-center justify-center">
+        <div className="text-slate-600">Loading your readings...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFCF8] text-slate-800 font-sans selection:bg-emerald-100 flex flex-col">

@@ -8,6 +8,19 @@ export interface BibleEntry {
   verse?: string;
 }
 
+export interface BibleReading {
+  id: string;
+  userId: string;
+  bibleBook: string;
+  chapters: string;
+  verses?: string;
+  dateRead: Date;
+  completed: boolean;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface EntryFormData {
   book: string;
   chapters: string;

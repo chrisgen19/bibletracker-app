@@ -3,7 +3,7 @@ import { Calendar } from 'lucide-react';
 import type { EntryFormData } from '@/types';
 
 interface EntryFormProps {
-  onSubmit: (data: EntryFormData) => void;
+  onSubmit: (data: EntryFormData) => Promise<void> | void;
   initialDate: string;
 }
 
@@ -20,12 +20,21 @@ export function EntryForm({ onSubmit, initialDate }: EntryFormProps) {
     verses: '',
     date: initialDate,
   });
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!formData.book.trim() || !formData.chapters.trim()) return;
-    onSubmit(formData);
-    setFormData({ ...formData, book: '', chapters: '', verses: '' });
+
+    setSubmitting(true);
+    try {
+      await onSubmit(formData);
+      setFormData({ ...formData, book: '', chapters: '', verses: '' });
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -110,10 +119,10 @@ export function EntryForm({ onSubmit, initialDate }: EntryFormProps) {
       <div className="pt-1 sm:pt-2">
         <button
           type="submit"
-          disabled={!formData.book.trim() || !formData.chapters.trim()}
+          disabled={!formData.book.trim() || !formData.chapters.trim() || submitting}
           className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-slate-900 text-slate-50 hover:bg-slate-900/90 active:scale-95 h-9 sm:h-10 px-4 py-2 w-full shadow-sm"
         >
-          Save Entry
+          {submitting ? 'Saving...' : 'Save Entry'}
         </button>
       </div>
     </form>
