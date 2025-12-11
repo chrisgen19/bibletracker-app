@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Mail, Phone, MapPin, Calendar } from 'lucide-react';
+import { LogOut, User, Mail, Phone, MapPin, Calendar, ArrowLeft, BookOpen } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, logout, loading } = useAuth();
@@ -19,59 +19,63 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-lg text-gray-600">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#FDFCF8]">
+        <div className="text-lg text-slate-600">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#FDFCF8] text-slate-800 font-sans">
       {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-10 bg-[#FDFCF8]/95 backdrop-blur-sm border-b border-slate-200">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
             <button
               onClick={handleBackToHome}
-              className="text-gray-600 hover:text-gray-900"
+              className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+              aria-label="Back to calendar"
             >
-              ← Back to Calendar
+              <ArrowLeft size={20} className="text-slate-700" />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
+            <div className="flex items-center gap-2">
+              <BookOpen size={24} className="text-emerald-600" />
+              <h1 className="text-xl font-semibold text-slate-900">Profile</h1>
+            </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-colors text-sm font-medium"
           >
-            <LogOut size={20} />
+            <LogOut size={16} />
             Logout
           </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-3xl mx-auto px-4 py-8">
         {/* Welcome Section */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-6">
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">
             {user?.firstName} {user?.lastName}
           </h2>
-          <p className="text-gray-600">
+          <p className="text-slate-600">
             Manage your profile information and account settings.
           </p>
         </div>
 
         {/* User Profile Card */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <div className="flex items-center mb-6">
-            <div className="h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center">
-              <User size={40} className="text-blue-600" />
+            <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center">
+              <User size={40} className="text-emerald-600" />
             </div>
             <div className="ml-6">
-              <h3 className="text-2xl font-bold text-gray-900">
+              <h3 className="text-2xl font-bold text-slate-900">
                 {user?.firstName} {user?.lastName}
               </h3>
-              <p className="text-gray-500">{user?.status}</p>
+              <p className="text-slate-500">{user?.status}</p>
             </div>
           </div>
 
