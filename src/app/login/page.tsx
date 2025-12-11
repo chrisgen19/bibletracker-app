@@ -14,6 +14,7 @@ function LoginForm() {
     email: '',
     password: '',
   });
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -31,7 +32,7 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      await login(formData.email, formData.password);
+      await login(formData.email, formData.password, rememberMe);
 
       // Get redirect URL from query params or default to home
       const redirectUrl = searchParams.get('redirect') || '/';
@@ -121,6 +122,8 @@ function LoginForm() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-700">

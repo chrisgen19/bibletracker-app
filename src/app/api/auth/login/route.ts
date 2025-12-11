@@ -6,8 +6,8 @@ import { createToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const body: UserLogin = await request.json();
-    const { email, password } = body;
+    const body: UserLogin & { rememberMe?: boolean } = await request.json();
+    const { email, password, rememberMe = false } = body;
 
     // Validate input
     if (!email || !password) {
@@ -61,12 +61,15 @@ export async function POST(request: NextRequest) {
       token,
     });
 
-    // Set HTTP-only cookie
+    // Set HTTP-only cookie with different expiration based on rememberMe
+    // Remember me: 30 days, otherwise: 1 day
+    const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24;
+
     response.cookies.set('auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge,
       path: '/',
     });
 
