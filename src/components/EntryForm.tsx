@@ -1,6 +1,25 @@
-import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
+import { useState, FormEvent, ChangeEvent, useEffect, useRef } from 'react';
 import { Calendar } from 'lucide-react';
 import type { EntryFormData, BibleEntry } from '@/types';
+
+const BIBLE_BOOKS = [
+  // Old Testament
+  'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy',
+  'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel',
+  '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles',
+  'Ezra', 'Nehemiah', 'Esther', 'Job', 'Psalms', 'Proverbs',
+  'Ecclesiastes', 'Song of Solomon', 'Isaiah', 'Jeremiah', 'Lamentations',
+  'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos',
+  'Obadiah', 'Jonah', 'Micah', 'Nahum', 'Habakkuk',
+  'Zephaniah', 'Haggai', 'Zechariah', 'Malachi',
+  // New Testament
+  'Matthew', 'Mark', 'Luke', 'John', 'Acts',
+  'Romans', '1 Corinthians', '2 Corinthians', 'Galatians', 'Ephesians',
+  'Philippians', 'Colossians', '1 Thessalonians', '2 Thessalonians',
+  '1 Timothy', '2 Timothy', 'Titus', 'Philemon', 'Hebrews',
+  'James', '1 Peter', '2 Peter', '1 John', '2 John', '3 John',
+  'Jude', 'Revelation'
+];
 
 interface EntryFormProps {
   onSubmit: (data: EntryFormData) => Promise<void> | void;
@@ -23,6 +42,11 @@ export function EntryForm({ onSubmit, initialDate, editingEntry, onCancelEdit }:
     date: initialDate,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [filteredBooks, setFilteredBooks] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const autocompleteRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Update form when editing entry changes
   useEffect(() => {
@@ -43,6 +67,18 @@ export function EntryForm({ onSubmit, initialDate, editingEntry, onCancelEdit }:
     }
   }, [editingEntry, initialDate]);
 
+  // Close autocomplete when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (autocompleteRef.current && !autocompleteRef.current.contains(event.target as Node)) {
+        setShowAutocomplete(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!formData.book.trim() || !formData.chapters.trim()) return;
@@ -60,7 +96,52 @@ export function EntryForm({ onSubmit, initialDate, editingEntry, onCancelEdit }:
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    // Handle autocomplete for book field
+    if (name === 'book') {
+      if (value.trim()) {
+        const matches = BIBLE_BOOKS.filter(book =>
+          book.toLowerCase().startsWith(value.toLowerCase())
+        );
+        setFilteredBooks(matches);
+        setShowAutocomplete(matches.length > 0);
+        setSelectedIndex(0);
+      } else {
+        setShowAutocomplete(false);
+      }
+    }
+  };
+
+  const handleBookSelect = (book: string) => {
+    setFormData({ ...formData, book });
+    setShowAutocomplete(false);
+    setFilteredBooks([]);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showAutocomplete || filteredBooks.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => (prev + 1) % filteredBooks.length);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => (prev - 1 + filteredBooks.length) % filteredBooks.length);
+        break;
+      case 'Enter':
+        if (showAutocomplete) {
+          e.preventDefault();
+          handleBookSelect(filteredBooks[selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        setShowAutocomplete(false);
+        break;
+    }
   };
 
   const handleCancel = () => {
@@ -75,16 +156,37 @@ export function EntryForm({ onSubmit, initialDate, editingEntry, onCancelEdit }:
         <label htmlFor="book" className={labelClass}>
           Bible Book
         </label>
-        <input
-          id="book"
-          name="book"
-          type="text"
-          value={formData.book}
-          onChange={handleChange}
-          placeholder="e.g. Hebrews"
-          className={inputClass}
-          autoComplete="off"
-        />
+        <div className="relative" ref={autocompleteRef}>
+          <input
+            ref={inputRef}
+            id="book"
+            name="book"
+            type="text"
+            value={formData.book}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder="e.g. Hebrews"
+            className={inputClass}
+            autoComplete="off"
+          />
+          {showAutocomplete && filteredBooks.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-auto">
+              {filteredBooks.map((book, index) => (
+                <div
+                  key={book}
+                  onClick={() => handleBookSelect(book)}
+                  className={`px-3 py-2 cursor-pointer transition-colors ${
+                    index === selectedIndex
+                      ? 'bg-slate-100 text-slate-900'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  {book}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
