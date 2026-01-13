@@ -26,6 +26,7 @@ interface EntryFormProps {
   initialDate: string;
   editingEntry?: BibleEntry | null;
   onCancelEdit?: () => void;
+  lastReadBook?: string;
 }
 
 const inputClass =
@@ -34,7 +35,7 @@ const inputClass =
 const labelClass =
   'text-xs sm:text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-900';
 
-export function EntryForm({ onSubmit, initialDate, editingEntry, onCancelEdit }: EntryFormProps) {
+export function EntryForm({ onSubmit, initialDate, editingEntry, onCancelEdit, lastReadBook }: EntryFormProps) {
   const [formData, setFormData] = useState<EntryFormData>({
     book: '',
     chapters: '',
@@ -149,13 +150,35 @@ export function EntryForm({ onSubmit, initialDate, editingEntry, onCancelEdit }:
     if (onCancelEdit) onCancelEdit();
   };
 
+  const handleContinueFromLast = () => {
+    if (lastReadBook) {
+      setFormData({ ...formData, book: lastReadBook });
+      // Focus on chapters field after setting the book
+      setTimeout(() => {
+        document.getElementById('chapters')?.focus();
+      }, 0);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
       {/* Bible Book Input */}
       <div className="space-y-1.5 sm:space-y-2">
-        <label htmlFor="book" className={labelClass}>
-          Bible Book
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="book" className={labelClass}>
+            Bible Book
+          </label>
+          {lastReadBook && !editingEntry && !formData.book && (
+            <button
+              type="button"
+              onClick={handleContinueFromLast}
+              className="text-xs font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+            >
+              <span>Continue from</span>
+              <span className="font-semibold">{lastReadBook}</span>
+            </button>
+          )}
+        </div>
         <div className="relative" ref={autocompleteRef}>
           <input
             ref={inputRef}

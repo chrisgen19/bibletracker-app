@@ -36,6 +36,21 @@ export function EntrySheet({
   const dateKey = formatDateKey(selectedDate);
   const dayEntries = entries[dateKey] || [];
 
+  // Get the most recent book from all entries
+  const getLastReadBook = (): string | undefined => {
+    const allEntries: BibleEntry[] = [];
+    Object.values(entries).forEach(dayEntries => {
+      allEntries.push(...dayEntries);
+    });
+
+    // Sort by timestamp descending (most recent first)
+    allEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+    return allEntries[0]?.book;
+  };
+
+  const lastReadBook = getLastReadBook();
+
   const handleEdit = (id: string | number) => {
     const entry = dayEntries.find((e) => e.id === id);
     if (entry) {
@@ -97,6 +112,7 @@ export function EntrySheet({
             initialDate={dateKey}
             editingEntry={editingEntry}
             onCancelEdit={handleCancelEdit}
+            lastReadBook={lastReadBook}
           />
 
           <div className="mt-8 sm:mt-10">
